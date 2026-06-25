@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WordSpark AI — Chain Game</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
+
+  :root {
+    --bg: #0a0a12;
+    --surface: #13131f;
+    --card: #1a1a2e;
+    --accent: #7c3aed;
+    --glow: #a855f7;
+    --gold: #f59e0b;
+    --green: #10b981;
+    --red: #ef4444;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --border: #2d2d4a;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated background */
+  body::before {
+    content: '';
+    position: fixed;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(ellipse at 30% 20%, rgba(124,58,237,0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 70% 80%, rgba(168,85,247,0.06) 0%, transparent 50%);
+    animation: drift 12s ease-in-out infinite alternate;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  @keyframes drift {
+    from { transform: translate(0, 0) rotate(0deg); }
+    to { transform: translate(3%, 2%) rotate(1deg); }
+  }
+
+  /* TOP BAR */
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(10,10,18,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+  }
+
+  .logo {
+    font-size: 1.1rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #a855f7, #7c3aed);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.5px;
+  }
+
+  .coins-display {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(245,158,11,0.12);
+    border: 1px solid rgba(245,158,11,0.3);
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--gold);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .coins-display:hover { background: rgba(245,158,11,0.2); }
+
+  /* MAIN LAYOUT */
+  .main {
+    position: relative;
+    z-index: 1;
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 20px 16px 100px;
+  }
+
+  /* SCORE STRIP */
+  .score-strip {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .stat-box {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    text-align: center;
+  }
+
+  .stat-box .val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--glow);
+  }
+
+  .stat-box .lbl {
+    font-size: 0.7rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 2px;
+  }
+
+  /* TIMER BAR */
+  .timer-wrap {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    border: 1px solid var(--border);
+  }
+
+  .timer-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .timer-bar-bg {
+    height: 6px;
+    background: var(--surface);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+
+  .timer-bar-fill {
+    height: 100%;
+    border-radius: 99px;
+    background: linear-gradient(90deg, #7c3aed, #a855f7);
+    transition: width 1s linear, background 0.3s;
+  }
+
+  .timer-bar-fill.danger { background: linear-gradient(90deg, #ef4444, #f97316); }
+
+  /* CHALLENGE CARD */
+  .challenge-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .challenge-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--glow), transparent);
+  }
+
+  .challenge-label {
+    font-size: 0.7rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+  }
+
+  .challenge-word {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: 0.1em;
+    text-shadow: 0 0 20px rgba(168,85,247,0.4);
+  }
+
+  .challenge-hint {
+    margin-top: 10px;
+    font-size: 0.85rem;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .chain-rule {
+    margin-top: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(124,58,237,0.15);
+    border: 1px solid rgba(124,58,237,0.3);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    color: #c4b5fd;
+  }
+
+  /* ANSWER INPUT */
+  .input-area {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .word-input {
+    flex: 1;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    outline: none;
+    transition: border 0.2s;
+  }
+
+  .word-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(124,58,237,0.2); }
+  .word-input.correct { border-color: var(--green); animation: correctPulse 0.4s; }
+  .word-input.wrong { border-color: var(--red); animation: shake 0.4s; }
+
+  @keyframes correctPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
+  }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-6px); }
+    75% { transform: translateX(6px); }
+  }
+
+  .submit-btn {
+    background: linear-gradient(135deg, #7c3aed, #a855f7);
+    border: none;
+    border-radius: 12px;
+    padding: 14px 20px;
+    color: white;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    box-shadow: 0 4px 15px rgba(124,58,237,0.4);
+  }
+
+  .submit-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(124,58,237,0.5); }
+  .submit-btn:active { transform: translateY(0); }
+  .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  /* CHAIN HISTORY */
+  .chain-section {
+    margin-bottom: 16px;
+  }
+
+  .chain-section h3 {
+    font-size: 0.75rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+  }
+
+  .chain-words {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .chain-word-pill {
+    font-family: 'JetBrains Mono', monospace;
+    background: rgba(124,58,237,0.15);
+    border: 1px solid rgba(124,58,237,0.3);
+    color: #c4b5fd;
+    padding: 5px 12px;
+    border-radius: 99px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    animation: popIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+
+  @keyframes popIn {
+    from { transform: scale(0.7); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  /* ACTION BUTTONS ROW */
+  .action-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .action-btn {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.2s;
+  }
+
+  .action-btn:hover { background: rgba(124,58,237,0.15); border-color: var(--accent); }
+  .action-btn.gold { color: var(--gold); }
+  .action-btn.gold:hover { background: rgba(245,158,11,0.1); border-color: var(--gold); }
+
+  /* AD BANNER */
+  .ad-banner {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+    margin-bottom: 16px;
+    position: relative;
+  }
+
+  .ad-tag {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    font-size: 0.6rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .ad-banner h4 { color: var(--gold); font-size: 0.95rem; margin-bottom: 4px; }
+  .ad-banner p { color: var(--muted); font-size: 0.8rem; margin-bottom: 12px; }
+
+  .watch-ad-btn {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    border: none;
+    border-radius: 10px;
+    padding: 10px 20px;
+    color: #0a0a12;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .watch-ad-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(245,158,11,0.4); }
+
+  /* LEADERBOARD */
+  .leaderboard-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .lb-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+  }
+
+  .lb-header h3 { font-size: 0.9rem; font-weight: 700; }
+
+  .lb-entry-fee {
+    font-size: 0.75rem;
+    color: var(--gold);
+    background: rgba(245,158,11,0.1);
+    border: 1px solid rgba(245,158,11,0.2);
+    padding: 3px 8px;
+    border-radius: 6px;
+  }
+
+  .lb-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+
+  .lb-row:last-child { border-bottom: none; }
+
+  .lb-rank {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    font-weight: 700;
+    width: 24px;
+    text-align: center;
+  }
+
+  .lb-rank.gold { color: var(--gold); }
+  .lb-rank.silver { color: #94a3b8; }
+  .lb-rank.bronze { color: #b45309; }
+
+  .lb-name { flex: 1; font-size: 0.85rem; }
+  .lb-score {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--glow);
+  }
+
+  .join-lb-btn {
+    width: 100%;
+    margin-top: 12px;
+    background: transparent;
+    border: 1px solid rgba(245,158,11,0.4);
+    border-radius: 10px;
+    padding: 10px;
+    color: var(--gold);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .join-lb-btn:hover { background: rgba(245,158,11,0.1); }
+
+  /* SHOP MODAL */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    z-index: 200;
+    align-items: flex-end;
+    justify-content: center;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px 20px 0 0;
+    width: 100%;
+    max-width: 480px;
+    padding: 24px 20px 40px;
+    animation: slideUp 0.3s cubic-bezier(0.34,1.2,0.64,1);
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  .modal-handle {
+    width: 40px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 99px;
+    margin: 0 auto 20px;
+  }
+
+  .modal h2 { font-size: 1.2rem; margin-bottom: 6px; }
+  .modal p { color: var(--muted); font-size: 0.85rem; margin-bottom: 20px; }
+
+  .shop-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .shop-item {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px 14px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .shop-item:hover { border-color: var(--accent); transform: translateY(-2px); }
+
+  .shop-item .icon { font-size: 2rem; margin-bottom: 8px; }
+  .shop-item .name { font-size: 0.85rem; font-weight: 700; margin-bottom: 4px; }
+  .shop-item .desc { font-size: 0.72rem; color: var(--muted); margin-bottom: 10px; line-height: 1.4; }
+  .shop-item .price {
+    background: rgba(124,58,237,0.2);
+    border: 1px solid rgba(124,58,237,0.3);
+    border-radius: 8px;
+    padding: 5px 10px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #c4b5fd;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .close-modal {
+    width: 100%;
+    margin-top: 16px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    color: var(--muted);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .close-modal:hover { border-color: var(--red); color: var(--red); }
+
+  /* FEEDBACK TOAST */
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    opacity: 0;
+    transition: all 0.3s;
+    z-index: 300;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  .toast.success { border-color: var(--green); color: var(--green); }
+  .toast.error { border-color: var(--red); color: var(--red); }
+  .toast.info { border-color: var(--glow); color: var(--glow); }
+  .toast.gold-toast { border-color: var(--gold); color: var(--gold); }
+
+  /* LOADING */
+  .loading-dots {
+    display: inline-flex;
+    gap: 4px;
+    align-items: center;
+  }
+
+  .loading-dots span {
+    width: 6px; height: 6px;
+    background: var(--glow);
+    border-radius: 50%;
+    animation: bounce 0.8s infinite;
+  }
+
+  .loading-dots span:nth-child(2) { animation-delay: 0.15s; }
+  .loading-dots span:nth-child(3) { animation-delay: 0.3s; }
+
+  @keyframes bounce {
+    0%,60%,100% { transform: translateY(0); }
+    30% { transform: translateY(-6px); }
+  }
+
+  /* GAME OVER */
+  .game-over-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 30px 20px;
+    text-align: center;
+    display: none;
+  }
+
+  .game-over-card.show { display: block; animation: popIn 0.5s cubic-bezier(0.34,1.56,0.64,1); }
+
+  .game-over-card .big-score {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 3rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #a855f7, #7c3aed);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin: 12px 0;
+  }
+
+  .play-again-btn {
+    background: linear-gradient(135deg, #7c3aed, #a855f7);
+    border: none;
+    border-radius: 12px;
+    padding: 14px 32px;
+    color: white;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 16px;
+    box-shadow: 0 4px 15px rgba(124,58,237,0.4);
+    transition: all 0.2s;
+  }
+
+  .play-again-btn:hover { transform: translateY(-2px); }
+
+  /* LIVES */
+  .lives-display {
+    display: flex;
+    gap: 4px;
+  }
+
+  .life { font-size: 1rem; filter: grayscale(0); transition: filter 0.3s; }
+  .life.lost { filter: grayscale(1); opacity: 0.3; }
+
+  /* AI Loading state */
+  .ai-loading {
+    color: var(--muted);
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 0;
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="logo">⚡ WordSpark AI</div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <div class="lives-display" id="livesDisplay"></div>
+    <div class="coins-display" onclick="openShop()">
+      🪙 <span id="coinCount">150</span>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- SCORES -->
+  <div class="score-strip">
+    <div class="stat-box">
+      <div class="val" id="scoreVal">0</div>
+      <div class="lbl">Score</div>
+    </div>
+    <div class="stat-box">
+      <div class="val" id="chainVal">0</div>
+      <div class="lbl">Chain</div>
+    </div>
+    <div class="stat-box">
+      <div class="val" id="bestVal">0</div>
+      <div class="lbl">Best</div>
+    </div>
+  </div>
+
+  <!-- TIMER -->
+  <div class="timer-wrap">
+    <div class="timer-label">
+      <span>Time Left</span>
+      <span id="timerText">30s</span>
+    </div>
+    <div class="timer-bar-bg">
+      <div class="timer-bar-fill" id="timerBar" style="width:100%"></div>
+    </div>
+  </div>
+
+  <!-- CHALLENGE CARD -->
+  <div class="challenge-card" id="challengeCard">
+    <div class="challenge-label">🤖 AI Challenge Word</div>
+    <div class="challenge-word" id="challengeWord">SPARK</div>
+    <div class="challenge-hint" id="challengeHint">Type a word that starts with the last letter of the word above</div>
+    <div class="chain-rule" id="chainRule">
+      🔗 Next word must start with: <strong id="nextLetter">K</strong>
+    </div>
+  </div>
+
+  <!-- INPUT -->
+  <div class="input-area" id="inputArea">
+    <input type="text" class="word-input" id="wordInput" placeholder="TYPE WORD..." maxlength="20" autocomplete="off" autocorrect="off" spellcheck="false" />
+    <button class="submit-btn" id="submitBtn" onclick="submitWord()">GO →</button>
+  </div>
+
+  <!-- CHAIN HISTORY -->
+  <div class="chain-section" id="chainSection">
+    <h3>Your Chain 🔗</h3>
+    <div class="chain-words" id="chainWords"></div>
+  </div>
+
+  <!-- GAME OVER -->
+  <div class="game-over-card" id="gameOverCard">
+    <div style="font-size:2.5rem">🏆</div>
+    <div style="font-size:1rem;color:var(--muted)">Game Over! Final Score</div>
+    <div class="big-score" id="finalScore">0</div>
+    <div style="font-size:0.85rem;color:var(--muted)" id="gameOverMsg">Keep practicing to beat your record!</div>
+    <button class="play-again-btn" onclick="restartGame()">▶ Play Again</button>
+    <button class="play-again-btn" style="background:rgba(245,158,11,0.2);color:var(--gold);box-shadow:none;border:1px solid rgba(245,158,11,0.3);margin-left:8px" onclick="watchAdRevive()">📺 Watch Ad → Revive</button>
+  </div>
+
+  <!-- ACTION BUTTONS -->
+  <div class="action-row" id="actionRow">
+    <button class="action-btn gold" onclick="useHint()">
+      💡 Hint <span style="font-size:0.7rem;color:var(--muted)">(30🪙)</span>
+    </button>
+    <button class="action-btn gold" onclick="useSkip()">
+      ⏭ Skip Word <span style="font-size:0.7rem;color:var(--muted)">(50🪙)</span>
+    </button>
+  </div>
+
+  <!-- AD BANNER -->
+  <div class="ad-banner" id="adBanner">
+    <div class="ad-tag">AD</div>
+    <h4>🎁 Double your coins!</h4>
+    <p>Watch a short video and earn 100 bonus coins</p>
+    <button class="watch-ad-btn" onclick="watchAd()">▶ Watch Now (+100🪙)</button>
+  </div>
+
+  <!-- LEADERBOARD -->
+  <div class="leaderboard-card">
+    <div class="lb-header">
+      <h3>🏅 Today's Top Players</h3>
+      <span class="lb-entry-fee">Join: 20🪙</span>
+    </div>
+    <div id="lbList"></div>
+    <button class="join-lb-btn" onclick="joinLeaderboard()">
+      🎯 Join Today's Contest (20🪙)
+    </button>
+  </div>
+
+</div>
+
+<!-- SHOP MODAL -->
+<div class="modal-overlay" id="shopModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2>🛒 Power-Up Shop</h2>
+    <p>Spend your coins to get an edge in the game</p>
+    <div class="shop-grid">
+      <div class="shop-item" onclick="buyItem('extraLife')">
+        <div class="icon">❤️</div>
+        <div class="name">Extra Life</div>
+        <div class="desc">Get one more chance when you fail</div>
+        <div class="price">🪙 80</div>
+      </div>
+      <div class="shop-item" onclick="buyItem('timeBoost')">
+        <div class="icon">⏱️</div>
+        <div class="name">+15 Sec</div>
+        <div class="desc">Add 15 seconds to your timer</div>
+        <div class="price">🪙 60</div>
+      </div>
+      <div class="shop-item" onclick="buyItem('aiHint')">
+        <div class="icon">🤖</div>
+        <div class="name">AI Hint</div>
+        <div class="desc">AI suggests a perfect word for you</div>
+        <div class="price">🪙 40</div>
+      </div>
+      <div class="shop-item" onclick="buyItem('scoreBoost')">
+        <div class="icon">🚀</div>
+        <div class="name">2x Score</div>
+        <div class="desc">Double all points for 3 words</div>
+        <div class="price">🪙 100</div>
+      </div>
+    </div>
+    <button class="close-modal" onclick="closeShop()">✕ Close</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ========== GAME STATE ==========
+let state = {
+  score: 0,
+  chain: 0,
+  best: parseInt(localStorage.getItem('wordspark_best') || '0'),
+  coins: parseInt(localStorage.getItem('wordspark_coins') || '150'),
+  lives: 3,
+  maxLives: 3,
+  timeLeft: 30,
+  maxTime: 30,
+  currentWord: 'SPARK',
+  nextLetter: 'K',
+  chainWords: [],
+  isPlaying: true,
+  scoreMultiplier: 1,
+  scoreBoostWords: 0,
+  timerInterval: null,
+  adCooldown: false,
+  leaderboardJoined: false
+};
+
+const leaderboard = [
+  { name: '⚡ AliKhan99', score: 2840 },
+  { name: '🔥 ZaraPlays', score: 2210 },
+  { name: '🎮 GameMaster', score: 1980 },
+  { name: '👑 WordNinja', score: 1755 },
+  { name: '💫 QuickTyper', score: 1430 },
+];
+
+// ========== INIT ==========
+function init() {
+  renderLives();
+  renderLeaderboard();
+  updateUI();
+  startTimer();
+
+  const input = document.getElementById('wordInput');
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') submitWord(); });
+  input.focus();
+}
+
+function renderLives() {
+  const el = document.getElementById('livesDisplay');
+  el.innerHTML = '';
+  for (let i = 0; i < state.maxLives; i++) {
+    const span = document.createElement('span');
+    span.className = 'life' + (i >= state.lives ? ' lost' : '');
+    span.textContent = '❤️';
+    el.appendChild(span);
+  }
+}
+
+function renderLeaderboard() {
+  const el = document.getElementById('lbList');
+  const ranks = ['🥇','🥈','🥉','4','5'];
+  const rankClass = ['gold','silver','bronze','',''];
+  el.innerHTML = leaderboard.map((p, i) => `
+    <div class="lb-row">
+      <div class="lb-rank ${rankClass[i]}">${ranks[i]}</div>
+      <div class="lb-name">${p.name}</div>
+      <div class="lb-score">${p.score.toLocaleString()}</div>
+    </div>
+  `).join('');
+}
+
+function updateUI() {
+  document.getElementById('scoreVal').textContent = state.score.toLocaleString();
+  document.getElementById('chainVal').textContent = state.chain;
+  document.getElementById('bestVal').textContent = state.best.toLocaleString();
+  document.getElementById('coinCount').textContent = state.coins;
+  document.getElementById('challengeWord').textContent = state.currentWord;
+  document.getElementById('nextLetter').textContent = state.nextLetter;
+}
+
+// ========== TIMER ==========
+function startTimer() {
+  clearInterval(state.timerInterval);
+  state.timerInterval = setInterval(() => {
+    if (!state.isPlaying) return;
+    state.timeLeft--;
+    const pct = (state.timeLeft / state.maxTime) * 100;
+    const bar = document.getElementById('timerBar');
+    bar.style.width = pct + '%';
+    bar.className = 'timer-bar-fill' + (pct < 30 ? ' danger' : '');
+    document.getElementById('timerText').textContent = state.timeLeft + 's';
+    if (state.timeLeft <= 0) timeUp();
+  }, 1000);
+}
+
+function resetTimer() {
+  state.timeLeft = state.maxTime;
+  document.getElementById('timerBar').style.width = '100%';
+  document.getElementById('timerBar').className = 'timer-bar-fill';
+  document.getElementById('timerText').textContent = state.maxTime + 's';
+}
+
+function timeUp() {
+  loseLife("⏰ Time's up!");
+}
+
+// ========== WORD SUBMISSION ==========
+async function submitWord() {
+  if (!state.isPlaying) return;
+  const input = document.getElementById('wordInput');
+  const word = input.value.trim().toUpperCase().replace(/[^A-Z]/g, '');
+  if (!word) return;
+
+  if (word[0] !== state.nextLetter) {
+    wrongAnswer(input, `❌ Must start with "${state.nextLetter}"`);
+    return;
+  }
+
+  if (state.chainWords.includes(word)) {
+    wrongAnswer(input, '❌ Already used this word!');
+    return;
+  }
+
+  if (word.length < 3) {
+    wrongAnswer(input, '❌ Minimum 3 letters!');
+    return;
+  }
+
+  // Validate with AI
+  const submitBtn = document.getElementById('submitBtn');
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div>';
+
+  const isValid = await validateWordWithAI(word);
+
+  submitBtn.disabled = false;
+  submitBtn.textContent = 'GO →';
+
+  if (!isValid) {
+    wrongAnswer(input, `❌ "${word}" is not a valid English word`);
+    return;
+  }
+
+  // Correct!
+  correctAnswer(input, word);
+}
+
+async function validateWordWithAI(word) {
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 50,
+        messages: [{
+          role: "user",
+          content: `Is "${word}" a valid common English word? Reply with ONLY "YES" or "NO". No explanation.`
+        }]
+      })
+    });
+    const data = await response.json();
+    const text = data.content?.[0]?.text?.trim().toUpperCase() || 'NO';
+    return text.startsWith('YES');
+  } catch (e) {
+    // Fallback: accept if length >= 3 (offline mode)
+    return word.length >= 3;
+  }
+}
+
+async function getNextAIWord(letter) {
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 30,
+        messages: [{
+          role: "user",
+          content: `Give me ONE common English word that starts with the letter "${letter}". Reply with ONLY the word in UPPERCASE. No punctuation.`
+        }]
+      })
+    });
+    const data = await response.json();
+    const word = data.content?.[0]?.text?.trim().toUpperCase().replace(/[^A-Z]/g,'') || letter + 'OAT';
+    return word;
+  } catch(e) {
+    const fallbacks = {A:'APPLE',B:'BALL',C:'CAT',D:'DOG',E:'EGG',F:'FUN',G:'GAME',H:'HAT',I:'ICE',J:'JAR',K:'KEY',L:'LION',M:'MAP',N:'NET',O:'OAK',P:'PAN',Q:'QUEEN',R:'RAT',S:'SUN',T:'TOP',U:'URN',V:'VAN',W:'WIN',X:'XRAY',Y:'YAK',Z:'ZAP'};
+    return fallbacks[letter] || letter + 'OOL';
+  }
+}
+
+function correctAnswer(input, word) {
+  input.className = 'word-input correct';
+  input.value = '';
+
+  // Score calculation
+  const basePoints = word.length * 10 * (state.chain > 5 ? 2 : 1);
+  const timeBonus = Math.floor(state.timeLeft * 2);
+  const points = (basePoints + timeBonus) * state.scoreMultiplier;
+
+  state.score += points;
+  state.chain++;
+  state.chainWords.push(word);
+
+  if (state.scoreBoostWords > 0) {
+    state.scoreBoostWords--;
+    if (state.scoreBoostWords === 0) state.scoreMultiplier = 1;
+  }
+
+  if (state.score > state.best) {
+    state.best = state.score;
+    localStorage.setItem('wordspark_best', state.best);
+  }
+
+  // Coin reward
+  const coinEarned = Math.floor(word.length * 2);
+  state.coins += coinEarned;
+  localStorage.setItem('wordspark_coins', state.coins);
+
+  // Add to chain display
+  addChainPill(word);
+  showToast(`✅ +${points} pts  +${coinEarned}🪙`, 'success');
+
+  // Get next AI word
+  const lastLetter = word[word.length - 1];
+  state.nextLetter = lastLetter;
+  state.currentWord = '...';
+  updateUI();
+
+  resetTimer();
+  setTimeout(() => { input.className = 'word-input'; }, 500);
+
+  getNextAIWord(lastLetter).then(nextWord => {
+    state.currentWord = nextWord;
+    state.nextLetter = nextWord[nextWord.length - 1];
+    updateUI();
+  });
+}
+
+function wrongAnswer(input, msg) {
+  input.className = 'word-input wrong';
+  setTimeout(() => { input.className = 'word-input'; input.value = ''; }, 600);
+  showToast(msg, 'error');
+  loseLife(msg);
+}
+
+function loseLife(reason) {
+  state.lives--;
+  renderLives();
+  if (state.lives <= 0) {
+    gameOver();
+  }
+}
+
+function addChainPill(word) {
+  const container = document.getElementById('chainWords');
+  const pill = document.createElement('div');
+  pill.className = 'chain-word-pill';
+  pill.textContent = word;
+  container.appendChild(pill);
+  container.scrollLeft = container.scrollWidth;
+}
+
+// ========== GAME OVER ==========
+function gameOver() {
+  clearInterval(state.timerInterval);
+  state.isPlaying = false;
+  document.getElementById('inputArea').style.display = 'none';
+  document.getElementById('actionRow').style.display = 'none';
+  document.getElementById('challengeCard').style.display = 'none';
+  document.getElementById('timerWrap')?.style && (document.querySelector('.timer-wrap').style.display = 'none');
+
+  const card = document.getElementById('gameOverCard');
+  document.getElementById('finalScore').textContent = state.score.toLocaleString();
+  document.getElementById('gameOverMsg').textContent = state.score > 500 ? '🔥 Great game! Keep it up!' : '💪 Practice makes perfect!';
+  card.classList.add('show');
+}
+
+function restartGame() {
+  clearInterval(state.timerInterval);
+  state.score = 0;
+  state.chain = 0;
+  state.lives = 3;
+  state.timeLeft = 30;
+  state.currentWord = 'SPARK';
+  state.nextLetter = 'K';
+  state.chainWords = [];
+  state.isPlaying = true;
+  state.scoreMultiplier = 1;
+  state.scoreBoostWords = 0;
+
+  document.getElementById('gameOverCard').classList.remove('show');
+  document.getElementById('inputArea').style.display = '';
+  document.getElementById('actionRow').style.display = '';
+  document.getElementById('challengeCard').style.display = '';
+  document.querySelector('.timer-wrap').style.display = '';
+  document.getElementById('chainWords').innerHTML = '';
+  document.getElementById('wordInput').className = 'word-input';
+
+  renderLives();
+  updateUI();
+  resetTimer();
+  startTimer();
+  document.getElementById('wordInput').focus();
+}
+
+// ========== POWER-UPS ==========
+function useHint() {
+  if (state.coins < 30) { showToast('❌ Not enough coins! Watch an ad to earn more.', 'error'); return; }
+  if (!state.isPlaying) return;
+  state.coins -= 30;
+  localStorage.setItem('wordspark_coins', state.coins);
+  updateUI();
+  showToast(`💡 Next word starts with "${state.nextLetter}" — think of any common word!`, 'info');
+}
+
+function useSkip() {
+  if (state.coins < 50) { showToast('❌ Need 50🪙 to skip. Watch an ad!', 'error'); return; }
+  if (!state.isPlaying) return;
+  state.coins -= 50;
+  localStorage.setItem('wordspark_coins', state.coins);
+
+  // Generate random new word
+  const letters = 'ABCDEFGHIJKLMNOPRSTW';
+  const newLetter = letters[Math.floor(Math.random() * letters.length)];
+  state.currentWord = '...';
+  updateUI();
+
+  getNextAIWord(newLetter).then(w => {
+    state.currentWord = w;
+    state.nextLetter = w[w.length - 1];
+    resetTimer();
+    updateUI();
+    showToast('⏭ Word skipped!', 'info');
+  });
+}
+
+// ========== ADS ==========
+function watchAd() {
+  if (state.adCooldown) { showToast('⏳ Ad cooldown. Try again in a moment.', 'info'); return; }
+  simulateAd(() => {
+    state.coins += 100;
+    localStorage.setItem('wordspark_coins', state.coins);
+    updateUI();
+    showToast('🎉 +100🪙 earned! Thanks for watching!', 'gold-toast');
+    state.adCooldown = true;
+    setTimeout(() => { state.adCooldown = false; }, 30000);
+  });
+}
+
+function watchAdRevive() {
+  simulateAd(() => {
+    state.lives = 1;
+    state.isPlaying = true;
+    document.getElementById('gameOverCard').classList.remove('show');
+    document.getElementById('inputArea').style.display = '';
+    document.getElementById('actionRow').style.display = '';
+    document.getElementById('challengeCard').style.display = '';
+    document.querySelector('.timer-wrap').style.display = '';
+    renderLives();
+    resetTimer();
+    startTimer();
+    showToast('❤️ Revived! Keep going!', 'success');
+  });
+}
+
+function simulateAd(callback) {
+  showToast('📺 Ad playing... (3s)', 'info');
+  setTimeout(callback, 3000);
+}
+
+// ========== SHOP ==========
+function openShop() { document.getElementById('shopModal').classList.add('open'); }
+function closeShop() { document.getElementById('shopModal').classList.remove('open'); }
+
+function buyItem(item) {
+  const costs = { extraLife: 80, timeBoost: 60, aiHint: 40, scoreBoost: 100 };
+  const cost = costs[item];
+  if (state.coins < cost) { showToast(`❌ Need ${cost}🪙. Watch ads to earn more!`, 'error'); return; }
+  state.coins -= cost;
+  localStorage.setItem('wordspark_coins', state.coins);
+
+  if (item === 'extraLife') {
+    if (state.lives < state.maxLives) { state.lives++; renderLives(); }
+    showToast('❤️ Extra life added!', 'success');
+  } else if (item === 'timeBoost') {
+    state.timeLeft = Math.min(state.maxTime, state.timeLeft + 15);
+    showToast('⏱️ +15 seconds added!', 'success');
+  } else if (item === 'aiHint') {
+    showToast(`💡 Try a word starting with "${state.nextLetter}" — like "${state.nextLetter}OAT" or "${state.nextLetter}OOK"`, 'info');
+  } else if (item === 'scoreBoost') {
+    state.scoreMultiplier = 2;
+    state.scoreBoostWords = 3;
+    showToast('🚀 2x Score active for next 3 words!', 'gold-toast');
+  }
+
+  updateUI();
+  closeShop();
+}
+
+// ========== LEADERBOARD ==========
+function joinLeaderboard() {
+  if (state.leaderboardJoined) { showToast('✅ Already joined today!', 'info'); return; }
+  if (state.coins < 20) { showToast('❌ Need 20🪙 to join!', 'error'); return; }
+  state.coins -= 20;
+  state.leaderboardJoined = true;
+  localStorage.setItem('wordspark_coins', state.coins);
+  updateUI();
+  showToast('🏆 You joined the daily contest! Good luck!', 'gold-toast');
+  // Add player to leaderboard
+  leaderboard.push({ name: '⭐ You', score: state.score });
+  leaderboard.sort((a,b) => b.score - a.score);
+  if (leaderboard.length > 5) leaderboard.pop();
+  renderLeaderboard();
+}
+
+// ========== TOAST ==========
+function showToast(msg, type = 'info') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast show ${type}`;
+  setTimeout(() => { el.className = 'toast'; }, 2500);
+}
+
+// Start!
+init();
+</script>
+</body>
+</html>
