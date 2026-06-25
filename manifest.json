@@ -1,0 +1,16 @@
+{
+  "name": "WordSpark AI",
+  "short_name": "WordSpark",
+  "description": "AI powered word chain game",
+  "start_url": "/AI-Word-Chain-Game/word-chain-game.html",
+  "display": "standalone",
+  "background_color": "#0a0a12",
+  "theme_color": "#7c3aed",
+  "icons": [
+    {
+      "src": "https://via.placeholder.com/192",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
